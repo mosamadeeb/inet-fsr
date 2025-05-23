@@ -48,6 +48,18 @@ void FsrNode::initialize(int stage)
         routerId = rt->getRouterId();
 
         startupTimer = new cMessage("FSR-startup");
+
+        linkTimeout = par("linkTimeout").doubleValue();
+
+        maxScope = 1;
+        ScopesParam *scopesPar = check_and_cast<ScopesParam *>(par("scopes").objectValue());
+        for (int i = 0; i < scopesPar->getScopesArraySize(); i++) {
+            scopes.push_back(scopesPar->getScopes(i));
+
+            if (scopesPar->getScopes(i).scope > maxScope) {
+                maxScope = scopesPar->getScopes(i).scope;
+            }
+        }
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) { // interfaces and static routes are already initialized
         registerProtocol(FSR_PROTOCOL, gate("ipOut"), gate("ipIn"));
@@ -162,7 +174,8 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
     std::vector<Ipv4Address> addresses;
     for (auto link : distanceTable) {
         // This is "distance in hops", not cost
-        if (link.getCost() == periodicScope->scope) {
+        if (link.getCost() == periodicScope->scope
+            || (periodicScope->scope == maxScope && link.getCost() >= maxScope)) {
             addresses.push_back(link.getAddress());
         }
     }

@@ -23,6 +23,8 @@ namespace fsrv2 {
 class LinkInfo;
 class LinkState;
 class LSUPacket;
+struct ScopePeriod;
+class ScopesParam;
 
 }  // namespace fsrv2
 }  // namespace inet
@@ -40,13 +42,13 @@ using namespace inet;
 // }}
 
 /**
- * Class generated from <tt>packet.msg:11</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:10</tt> by opp_msgtool.
  * <pre>
  * class LinkInfo
  * {
  *     \@packetData;
  *     Ipv4Address address;
- *     unsigned long cost = 1;
+ *     unsigned long cost = 1; // This also acts as distance in SPF algorithm
  * }
  * </pre>
  */
@@ -84,7 +86,7 @@ class LinkInfo
 };
 
 /**
- * Class generated from <tt>packet.msg:35</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:34</tt> by opp_msgtool.
  * <pre>
  * class LinkState
  * {
@@ -137,7 +139,7 @@ class LinkState
 };
 
 /**
- * Class generated from <tt>packet.msg:44</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:43</tt> by opp_msgtool.
  * <pre>
  * packet LSUPacket
  * {
@@ -186,6 +188,67 @@ class LSUPacket : public ::omnetpp::cPacket
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const LSUPacket& obj) {obj.parsimPack(b);}
 inline void doParsimUnpacking(omnetpp::cCommBuffer *b, LSUPacket& obj) {obj.parsimUnpack(b);}
 
+/**
+ * Struct generated from packet.msg:48 by opp_msgtool.
+ */
+struct ScopePeriod
+{
+    ScopePeriod();
+    unsigned int scope = 0;
+    ::omnetpp::simtime_t period = SIMTIME_ZERO;
+};
+
+// helpers for local use
+void __doPacking(omnetpp::cCommBuffer *b, const ScopePeriod& a);
+void __doUnpacking(omnetpp::cCommBuffer *b, ScopePeriod& a);
+
+inline void doParsimPacking(omnetpp::cCommBuffer *b, const ScopePeriod& obj) { __doPacking(b, obj); }
+inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ScopePeriod& obj) { __doUnpacking(b, obj); }
+
+/**
+ * Class generated from <tt>packet.msg:53</tt> by opp_msgtool.
+ * <pre>
+ * class ScopesParam extends cObject
+ * {
+ *     ScopePeriod scopes[];
+ * }
+ * </pre>
+ */
+class ScopesParam : public ::omnetpp::cObject
+{
+  protected:
+    ScopePeriod *scopes = nullptr;
+    size_t scopes_arraysize = 0;
+
+  private:
+    void copy(const ScopesParam& other);
+
+  protected:
+    bool operator==(const ScopesParam&) = delete;
+
+  public:
+    ScopesParam();
+    ScopesParam(const ScopesParam& other);
+    virtual ~ScopesParam();
+    ScopesParam& operator=(const ScopesParam& other);
+    virtual ScopesParam *dup() const override {return new ScopesParam(*this);}
+    virtual void parsimPack(omnetpp::cCommBuffer *b) const override;
+    virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
+
+    virtual void setScopesArraySize(size_t size);
+    virtual size_t getScopesArraySize() const;
+    virtual const ScopePeriod& getScopes(size_t k) const;
+    virtual ScopePeriod& getScopesForUpdate(size_t k) { return const_cast<ScopePeriod&>(const_cast<ScopesParam*>(this)->getScopes(k));}
+    virtual void setScopes(size_t k, const ScopePeriod& scopes);
+    virtual void insertScopes(size_t k, const ScopePeriod& scopes);
+    [[deprecated]] void insertScopes(const ScopePeriod& scopes) {appendScopes(scopes);}
+    virtual void appendScopes(const ScopePeriod& scopes);
+    virtual void eraseScopes(size_t k);
+};
+
+inline void doParsimPacking(omnetpp::cCommBuffer *b, const ScopesParam& obj) {obj.parsimPack(b);}
+inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ScopesParam& obj) {obj.parsimUnpack(b);}
+
 
 }  // namespace fsrv2
 }  // namespace inet
@@ -198,6 +261,9 @@ template<> inline inet::fsrv2::LinkInfo *fromAnyPtr(any_ptr ptr) { return ptr.ge
 inline any_ptr toAnyPtr(const inet::fsrv2::LinkState *p) {if (auto obj = as_cObject(p)) return any_ptr(obj); else return any_ptr(p);}
 template<> inline inet::fsrv2::LinkState *fromAnyPtr(any_ptr ptr) { return ptr.get<inet::fsrv2::LinkState>(); }
 template<> inline inet::fsrv2::LSUPacket *fromAnyPtr(any_ptr ptr) { return check_and_cast<inet::fsrv2::LSUPacket*>(ptr.get<cObject>()); }
+inline any_ptr toAnyPtr(const inet::fsrv2::ScopePeriod *p) {return any_ptr(p);}
+template<> inline inet::fsrv2::ScopePeriod *fromAnyPtr(any_ptr ptr) { return ptr.get<inet::fsrv2::ScopePeriod>(); }
+template<> inline inet::fsrv2::ScopesParam *fromAnyPtr(any_ptr ptr) { return check_and_cast<inet::fsrv2::ScopesParam*>(ptr.get<cObject>()); }
 
 }  // namespace omnetpp
 

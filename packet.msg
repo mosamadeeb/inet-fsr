@@ -7,7 +7,6 @@ cplusplus {{
 using namespace inet;
 }}
 
-
 class LinkInfo {
     @packetData;
     Ipv4Address address;
@@ -44,4 +43,13 @@ packet LSUPacket
 {
     Ipv4Address srcAddress;
     LinkState linkStates[];
+}
+
+struct ScopePeriod {
+    unsigned int scope;
+    simtime_t period;
+}
+
+class ScopesParam extends cObject {
+    ScopePeriod scopes[];
 }

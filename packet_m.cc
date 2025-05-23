@@ -1438,6 +1438,753 @@ void LSUPacketDescriptor::setFieldStructValuePointer(omnetpp::any_ptr object, in
     }
 }
 
+ScopePeriod::ScopePeriod()
+{
+}
+
+void __doPacking(omnetpp::cCommBuffer *b, const ScopePeriod& a)
+{
+    doParsimPacking(b,a.scope);
+    doParsimPacking(b,a.period);
+}
+
+void __doUnpacking(omnetpp::cCommBuffer *b, ScopePeriod& a)
+{
+    doParsimUnpacking(b,a.scope);
+    doParsimUnpacking(b,a.period);
+}
+
+class ScopePeriodDescriptor : public omnetpp::cClassDescriptor
+{
+  private:
+    mutable const char **propertyNames;
+    enum FieldConstants {
+        FIELD_scope,
+        FIELD_period,
+    };
+  public:
+    ScopePeriodDescriptor();
+    virtual ~ScopePeriodDescriptor();
+
+    virtual bool doesSupport(omnetpp::cObject *obj) const override;
+    virtual const char **getPropertyNames() const override;
+    virtual const char *getProperty(const char *propertyName) const override;
+    virtual int getFieldCount() const override;
+    virtual const char *getFieldName(int field) const override;
+    virtual int findField(const char *fieldName) const override;
+    virtual unsigned int getFieldTypeFlags(int field) const override;
+    virtual const char *getFieldTypeString(int field) const override;
+    virtual const char **getFieldPropertyNames(int field) const override;
+    virtual const char *getFieldProperty(int field, const char *propertyName) const override;
+    virtual int getFieldArraySize(omnetpp::any_ptr object, int field) const override;
+    virtual void setFieldArraySize(omnetpp::any_ptr object, int field, int size) const override;
+
+    virtual const char *getFieldDynamicTypeString(omnetpp::any_ptr object, int field, int i) const override;
+    virtual std::string getFieldValueAsString(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldValueAsString(omnetpp::any_ptr object, int field, int i, const char *value) const override;
+    virtual omnetpp::cValue getFieldValue(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldValue(omnetpp::any_ptr object, int field, int i, const omnetpp::cValue& value) const override;
+
+    virtual const char *getFieldStructName(int field) const override;
+    virtual omnetpp::any_ptr getFieldStructValuePointer(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldStructValuePointer(omnetpp::any_ptr object, int field, int i, omnetpp::any_ptr ptr) const override;
+};
+
+Register_ClassDescriptor(ScopePeriodDescriptor)
+
+ScopePeriodDescriptor::ScopePeriodDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::ScopePeriod)), "")
+{
+    propertyNames = nullptr;
+}
+
+ScopePeriodDescriptor::~ScopePeriodDescriptor()
+{
+    delete[] propertyNames;
+}
+
+bool ScopePeriodDescriptor::doesSupport(omnetpp::cObject *obj) const
+{
+    return dynamic_cast<ScopePeriod *>(obj)!=nullptr;
+}
+
+const char **ScopePeriodDescriptor::getPropertyNames() const
+{
+    if (!propertyNames) {
+        static const char *names[] = {  nullptr };
+        omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+        const char **baseNames = base ? base->getPropertyNames() : nullptr;
+        propertyNames = mergeLists(baseNames, names);
+    }
+    return propertyNames;
+}
+
+const char *ScopePeriodDescriptor::getProperty(const char *propertyName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    return base ? base->getProperty(propertyName) : nullptr;
+}
+
+int ScopePeriodDescriptor::getFieldCount() const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    return base ? 2+base->getFieldCount() : 2;
+}
+
+unsigned int ScopePeriodDescriptor::getFieldTypeFlags(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldTypeFlags(field);
+        field -= base->getFieldCount();
+    }
+    static unsigned int fieldTypeFlags[] = {
+        FD_ISEDITABLE,    // FIELD_scope
+        FD_ISEDITABLE,    // FIELD_period
+    };
+    return (field >= 0 && field < 2) ? fieldTypeFlags[field] : 0;
+}
+
+const char *ScopePeriodDescriptor::getFieldName(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldName(field);
+        field -= base->getFieldCount();
+    }
+    static const char *fieldNames[] = {
+        "scope",
+        "period",
+    };
+    return (field >= 0 && field < 2) ? fieldNames[field] : nullptr;
+}
+
+int ScopePeriodDescriptor::findField(const char *fieldName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    int baseIndex = base ? base->getFieldCount() : 0;
+    if (strcmp(fieldName, "scope") == 0) return baseIndex + 0;
+    if (strcmp(fieldName, "period") == 0) return baseIndex + 1;
+    return base ? base->findField(fieldName) : -1;
+}
+
+const char *ScopePeriodDescriptor::getFieldTypeString(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldTypeString(field);
+        field -= base->getFieldCount();
+    }
+    static const char *fieldTypeStrings[] = {
+        "unsigned int",    // FIELD_scope
+        "omnetpp::simtime_t",    // FIELD_period
+    };
+    return (field >= 0 && field < 2) ? fieldTypeStrings[field] : nullptr;
+}
+
+const char **ScopePeriodDescriptor::getFieldPropertyNames(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldPropertyNames(field);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+const char *ScopePeriodDescriptor::getFieldProperty(int field, const char *propertyName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldProperty(field, propertyName);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+int ScopePeriodDescriptor::getFieldArraySize(omnetpp::any_ptr object, int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldArraySize(object, field);
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        default: return 0;
+    }
+}
+
+void ScopePeriodDescriptor::setFieldArraySize(omnetpp::any_ptr object, int field, int size) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldArraySize(object, field, size);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        default: throw omnetpp::cRuntimeError("Cannot set array size of field %d of class 'ScopePeriod'", field);
+    }
+}
+
+const char *ScopePeriodDescriptor::getFieldDynamicTypeString(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldDynamicTypeString(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+std::string ScopePeriodDescriptor::getFieldValueAsString(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldValueAsString(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        case FIELD_scope: return ulong2string(pp->scope);
+        case FIELD_period: return simtime2string(pp->period);
+        default: return "";
+    }
+}
+
+void ScopePeriodDescriptor::setFieldValueAsString(omnetpp::any_ptr object, int field, int i, const char *value) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldValueAsString(object, field, i, value);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        case FIELD_scope: pp->scope = string2ulong(value); break;
+        case FIELD_period: pp->period = string2simtime(value); break;
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopePeriod'", field);
+    }
+}
+
+omnetpp::cValue ScopePeriodDescriptor::getFieldValue(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldValue(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        case FIELD_scope: return (omnetpp::intval_t)(pp->scope);
+        case FIELD_period: return pp->period.dbl();
+        default: throw omnetpp::cRuntimeError("Cannot return field %d of class 'ScopePeriod' as cValue -- field index out of range?", field);
+    }
+}
+
+void ScopePeriodDescriptor::setFieldValue(omnetpp::any_ptr object, int field, int i, const omnetpp::cValue& value) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldValue(object, field, i, value);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        case FIELD_scope: pp->scope = omnetpp::checked_int_cast<unsigned int>(value.intValue()); break;
+        case FIELD_period: pp->period = value.doubleValue(); break;
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopePeriod'", field);
+    }
+}
+
+const char *ScopePeriodDescriptor::getFieldStructName(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldStructName(field);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        default: return nullptr;
+    };
+}
+
+omnetpp::any_ptr ScopePeriodDescriptor::getFieldStructValuePointer(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldStructValuePointer(object, field, i);
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        default: return omnetpp::any_ptr(nullptr);
+    }
+}
+
+void ScopePeriodDescriptor::setFieldStructValuePointer(omnetpp::any_ptr object, int field, int i, omnetpp::any_ptr ptr) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldStructValuePointer(object, field, i, ptr);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopePeriod *pp = omnetpp::fromAnyPtr<ScopePeriod>(object); (void)pp;
+    switch (field) {
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopePeriod'", field);
+    }
+}
+
+Register_Class(ScopesParam)
+
+ScopesParam::ScopesParam() : ::omnetpp::cObject()
+{
+}
+
+ScopesParam::ScopesParam(const ScopesParam& other) : ::omnetpp::cObject(other)
+{
+    copy(other);
+}
+
+ScopesParam::~ScopesParam()
+{
+    delete [] this->scopes;
+}
+
+ScopesParam& ScopesParam::operator=(const ScopesParam& other)
+{
+    if (this == &other) return *this;
+    ::omnetpp::cObject::operator=(other);
+    copy(other);
+    return *this;
+}
+
+void ScopesParam::copy(const ScopesParam& other)
+{
+    delete [] this->scopes;
+    this->scopes = (other.scopes_arraysize==0) ? nullptr : new ScopePeriod[other.scopes_arraysize];
+    scopes_arraysize = other.scopes_arraysize;
+    for (size_t i = 0; i < scopes_arraysize; i++) {
+        this->scopes[i] = other.scopes[i];
+    }
+}
+
+void ScopesParam::parsimPack(omnetpp::cCommBuffer *b) const
+{
+    b->pack(scopes_arraysize);
+    doParsimArrayPacking(b,this->scopes,scopes_arraysize);
+}
+
+void ScopesParam::parsimUnpack(omnetpp::cCommBuffer *b)
+{
+    delete [] this->scopes;
+    b->unpack(scopes_arraysize);
+    if (scopes_arraysize == 0) {
+        this->scopes = nullptr;
+    } else {
+        this->scopes = new ScopePeriod[scopes_arraysize];
+        doParsimArrayUnpacking(b,this->scopes,scopes_arraysize);
+    }
+}
+
+size_t ScopesParam::getScopesArraySize() const
+{
+    return scopes_arraysize;
+}
+
+const ScopePeriod& ScopesParam::getScopes(size_t k) const
+{
+    if (k >= scopes_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)scopes_arraysize, (unsigned long)k);
+    return this->scopes[k];
+}
+
+void ScopesParam::setScopesArraySize(size_t newSize)
+{
+    ScopePeriod *scopes2 = (newSize==0) ? nullptr : new ScopePeriod[newSize];
+    size_t minSize = scopes_arraysize < newSize ? scopes_arraysize : newSize;
+    for (size_t i = 0; i < minSize; i++)
+        scopes2[i] = this->scopes[i];
+    delete [] this->scopes;
+    this->scopes = scopes2;
+    scopes_arraysize = newSize;
+}
+
+void ScopesParam::setScopes(size_t k, const ScopePeriod& scopes)
+{
+    if (k >= scopes_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)scopes_arraysize, (unsigned long)k);
+    this->scopes[k] = scopes;
+}
+
+void ScopesParam::insertScopes(size_t k, const ScopePeriod& scopes)
+{
+    if (k > scopes_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)scopes_arraysize, (unsigned long)k);
+    size_t newSize = scopes_arraysize + 1;
+    ScopePeriod *scopes2 = new ScopePeriod[newSize];
+    size_t i;
+    for (i = 0; i < k; i++)
+        scopes2[i] = this->scopes[i];
+    scopes2[k] = scopes;
+    for (i = k + 1; i < newSize; i++)
+        scopes2[i] = this->scopes[i-1];
+    delete [] this->scopes;
+    this->scopes = scopes2;
+    scopes_arraysize = newSize;
+}
+
+void ScopesParam::appendScopes(const ScopePeriod& scopes)
+{
+    insertScopes(scopes_arraysize, scopes);
+}
+
+void ScopesParam::eraseScopes(size_t k)
+{
+    if (k >= scopes_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)scopes_arraysize, (unsigned long)k);
+    size_t newSize = scopes_arraysize - 1;
+    ScopePeriod *scopes2 = (newSize == 0) ? nullptr : new ScopePeriod[newSize];
+    size_t i;
+    for (i = 0; i < k; i++)
+        scopes2[i] = this->scopes[i];
+    for (i = k; i < newSize; i++)
+        scopes2[i] = this->scopes[i+1];
+    delete [] this->scopes;
+    this->scopes = scopes2;
+    scopes_arraysize = newSize;
+}
+
+class ScopesParamDescriptor : public omnetpp::cClassDescriptor
+{
+  private:
+    mutable const char **propertyNames;
+    enum FieldConstants {
+        FIELD_scopes,
+    };
+  public:
+    ScopesParamDescriptor();
+    virtual ~ScopesParamDescriptor();
+
+    virtual bool doesSupport(omnetpp::cObject *obj) const override;
+    virtual const char **getPropertyNames() const override;
+    virtual const char *getProperty(const char *propertyName) const override;
+    virtual int getFieldCount() const override;
+    virtual const char *getFieldName(int field) const override;
+    virtual int findField(const char *fieldName) const override;
+    virtual unsigned int getFieldTypeFlags(int field) const override;
+    virtual const char *getFieldTypeString(int field) const override;
+    virtual const char **getFieldPropertyNames(int field) const override;
+    virtual const char *getFieldProperty(int field, const char *propertyName) const override;
+    virtual int getFieldArraySize(omnetpp::any_ptr object, int field) const override;
+    virtual void setFieldArraySize(omnetpp::any_ptr object, int field, int size) const override;
+
+    virtual const char *getFieldDynamicTypeString(omnetpp::any_ptr object, int field, int i) const override;
+    virtual std::string getFieldValueAsString(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldValueAsString(omnetpp::any_ptr object, int field, int i, const char *value) const override;
+    virtual omnetpp::cValue getFieldValue(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldValue(omnetpp::any_ptr object, int field, int i, const omnetpp::cValue& value) const override;
+
+    virtual const char *getFieldStructName(int field) const override;
+    virtual omnetpp::any_ptr getFieldStructValuePointer(omnetpp::any_ptr object, int field, int i) const override;
+    virtual void setFieldStructValuePointer(omnetpp::any_ptr object, int field, int i, omnetpp::any_ptr ptr) const override;
+};
+
+Register_ClassDescriptor(ScopesParamDescriptor)
+
+ScopesParamDescriptor::ScopesParamDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::ScopesParam)), "omnetpp::cObject")
+{
+    propertyNames = nullptr;
+}
+
+ScopesParamDescriptor::~ScopesParamDescriptor()
+{
+    delete[] propertyNames;
+}
+
+bool ScopesParamDescriptor::doesSupport(omnetpp::cObject *obj) const
+{
+    return dynamic_cast<ScopesParam *>(obj)!=nullptr;
+}
+
+const char **ScopesParamDescriptor::getPropertyNames() const
+{
+    if (!propertyNames) {
+        static const char *names[] = {  nullptr };
+        omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+        const char **baseNames = base ? base->getPropertyNames() : nullptr;
+        propertyNames = mergeLists(baseNames, names);
+    }
+    return propertyNames;
+}
+
+const char *ScopesParamDescriptor::getProperty(const char *propertyName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    return base ? base->getProperty(propertyName) : nullptr;
+}
+
+int ScopesParamDescriptor::getFieldCount() const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    return base ? 1+base->getFieldCount() : 1;
+}
+
+unsigned int ScopesParamDescriptor::getFieldTypeFlags(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldTypeFlags(field);
+        field -= base->getFieldCount();
+    }
+    static unsigned int fieldTypeFlags[] = {
+        FD_ISARRAY | FD_ISCOMPOUND | FD_ISRESIZABLE,    // FIELD_scopes
+    };
+    return (field >= 0 && field < 1) ? fieldTypeFlags[field] : 0;
+}
+
+const char *ScopesParamDescriptor::getFieldName(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldName(field);
+        field -= base->getFieldCount();
+    }
+    static const char *fieldNames[] = {
+        "scopes",
+    };
+    return (field >= 0 && field < 1) ? fieldNames[field] : nullptr;
+}
+
+int ScopesParamDescriptor::findField(const char *fieldName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    int baseIndex = base ? base->getFieldCount() : 0;
+    if (strcmp(fieldName, "scopes") == 0) return baseIndex + 0;
+    return base ? base->findField(fieldName) : -1;
+}
+
+const char *ScopesParamDescriptor::getFieldTypeString(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldTypeString(field);
+        field -= base->getFieldCount();
+    }
+    static const char *fieldTypeStrings[] = {
+        "inet::fsrv2::ScopePeriod",    // FIELD_scopes
+    };
+    return (field >= 0 && field < 1) ? fieldTypeStrings[field] : nullptr;
+}
+
+const char **ScopesParamDescriptor::getFieldPropertyNames(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldPropertyNames(field);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+const char *ScopesParamDescriptor::getFieldProperty(int field, const char *propertyName) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldProperty(field, propertyName);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+int ScopesParamDescriptor::getFieldArraySize(omnetpp::any_ptr object, int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldArraySize(object, field);
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        case FIELD_scopes: return pp->getScopesArraySize();
+        default: return 0;
+    }
+}
+
+void ScopesParamDescriptor::setFieldArraySize(omnetpp::any_ptr object, int field, int size) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldArraySize(object, field, size);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        case FIELD_scopes: pp->setScopesArraySize(size); break;
+        default: throw omnetpp::cRuntimeError("Cannot set array size of field %d of class 'ScopesParam'", field);
+    }
+}
+
+const char *ScopesParamDescriptor::getFieldDynamicTypeString(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldDynamicTypeString(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        default: return nullptr;
+    }
+}
+
+std::string ScopesParamDescriptor::getFieldValueAsString(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldValueAsString(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        case FIELD_scopes: return "";
+        default: return "";
+    }
+}
+
+void ScopesParamDescriptor::setFieldValueAsString(omnetpp::any_ptr object, int field, int i, const char *value) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldValueAsString(object, field, i, value);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopesParam'", field);
+    }
+}
+
+omnetpp::cValue ScopesParamDescriptor::getFieldValue(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldValue(object,field,i);
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        case FIELD_scopes: return omnetpp::toAnyPtr(&pp->getScopes(i)); break;
+        default: throw omnetpp::cRuntimeError("Cannot return field %d of class 'ScopesParam' as cValue -- field index out of range?", field);
+    }
+}
+
+void ScopesParamDescriptor::setFieldValue(omnetpp::any_ptr object, int field, int i, const omnetpp::cValue& value) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldValue(object, field, i, value);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopesParam'", field);
+    }
+}
+
+const char *ScopesParamDescriptor::getFieldStructName(int field) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldStructName(field);
+        field -= base->getFieldCount();
+    }
+    switch (field) {
+        case FIELD_scopes: return omnetpp::opp_typename(typeid(ScopePeriod));
+        default: return nullptr;
+    };
+}
+
+omnetpp::any_ptr ScopesParamDescriptor::getFieldStructValuePointer(omnetpp::any_ptr object, int field, int i) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount())
+            return base->getFieldStructValuePointer(object, field, i);
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        case FIELD_scopes: return omnetpp::toAnyPtr(&pp->getScopes(i)); break;
+        default: return omnetpp::any_ptr(nullptr);
+    }
+}
+
+void ScopesParamDescriptor::setFieldStructValuePointer(omnetpp::any_ptr object, int field, int i, omnetpp::any_ptr ptr) const
+{
+    omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
+    if (base) {
+        if (field < base->getFieldCount()){
+            base->setFieldStructValuePointer(object, field, i, ptr);
+            return;
+        }
+        field -= base->getFieldCount();
+    }
+    ScopesParam *pp = omnetpp::fromAnyPtr<ScopesParam>(object); (void)pp;
+    switch (field) {
+        default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ScopesParam'", field);
+    }
+}
+
 }  // namespace fsrv2
 }  // namespace inet
 

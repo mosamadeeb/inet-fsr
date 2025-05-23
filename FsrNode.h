@@ -23,11 +23,6 @@ struct NeighborInfo {
     simtime_t lastLsuTime;
 };
 
-struct ScopePeriod {
-    unsigned int scope;
-    simtime_t period;
-};
-
 class INET_API FsrNode : public RoutingProtocolBase, protected cListener
 {
   private:
@@ -36,6 +31,7 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     ModuleRefByPar<IInterfaceTable> ift;
     Ipv4Address routerId;
     cMessage *startupTimer = nullptr; // timer for delayed startup
+    unsigned int maxScope;
 
     // FSR Data Structures
     std::map<Ipv4Address, NeighborInfo> neighborList;
@@ -44,9 +40,8 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     // No nextHopTable because the routing table rt is used instead
 
     // Parameters
-    simtime_t linkTimeout = SimTime(10, SIMTIME_S);
+    simtime_t linkTimeout;
     std::vector<ScopePeriod> scopes;
-
 
   public:
     FsrNode();
