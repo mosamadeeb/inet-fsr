@@ -81,7 +81,7 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
     }
     else {
         if (msg->isSelfMessage()) {
-            if (msg->getName() != "FsrScopeUpdate") {
+            if (strcmp(msg->getName(), "FsrScopeUpdate") != 0) {
                 return;
             }
 

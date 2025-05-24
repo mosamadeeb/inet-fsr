@@ -31,6 +31,8 @@ class ScopesParam;
 
 #include "inet/common/INETDefs_m.h" // import inet.common.INETDefs
 
+#include "inet/common/packet/chunk/Chunk_m.h" // import inet.common.packet.chunk.Chunk
+
 #include "inet/networklayer/contract/ipv4/Ipv4Address_m.h" // import inet.networklayer.contract.ipv4.Ipv4Address
 
 
@@ -42,7 +44,7 @@ using namespace inet;
 // }}
 
 /**
- * Class generated from <tt>packet.msg:10</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:11</tt> by opp_msgtool.
  * <pre>
  * class LinkInfo
  * {
@@ -86,7 +88,7 @@ class LinkInfo
 };
 
 /**
- * Class generated from <tt>packet.msg:34</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:35</tt> by opp_msgtool.
  * <pre>
  * class LinkState
  * {
@@ -139,16 +141,16 @@ class LinkState
 };
 
 /**
- * Class generated from <tt>packet.msg:43</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:44</tt> by opp_msgtool.
  * <pre>
- * packet LSUPacket
+ * class LSUPacket extends FieldsChunk
  * {
  *     Ipv4Address srcAddress;
  *     LinkState linkStates[];
  * }
  * </pre>
  */
-class LSUPacket : public ::omnetpp::cPacket
+class LSUPacket : public ::inet::FieldsChunk
 {
   protected:
     ::inet::Ipv4Address srcAddress;
@@ -162,7 +164,7 @@ class LSUPacket : public ::omnetpp::cPacket
     bool operator==(const LSUPacket&) = delete;
 
   public:
-    LSUPacket(const char *name=nullptr, short kind=0);
+    LSUPacket();
     LSUPacket(const LSUPacket& other);
     virtual ~LSUPacket();
     LSUPacket& operator=(const LSUPacket& other);
@@ -171,13 +173,13 @@ class LSUPacket : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     virtual const ::inet::Ipv4Address& getSrcAddress() const;
-    virtual ::inet::Ipv4Address& getSrcAddressForUpdate() { return const_cast<::inet::Ipv4Address&>(const_cast<LSUPacket*>(this)->getSrcAddress());}
+    virtual ::inet::Ipv4Address& getSrcAddressForUpdate() { handleChange();return const_cast<::inet::Ipv4Address&>(const_cast<LSUPacket*>(this)->getSrcAddress());}
     virtual void setSrcAddress(const ::inet::Ipv4Address& srcAddress);
 
     virtual void setLinkStatesArraySize(size_t size);
     virtual size_t getLinkStatesArraySize() const;
     virtual const LinkState& getLinkStates(size_t k) const;
-    virtual LinkState& getLinkStatesForUpdate(size_t k) { return const_cast<LinkState&>(const_cast<LSUPacket*>(this)->getLinkStates(k));}
+    virtual LinkState& getLinkStatesForUpdate(size_t k) { handleChange();return const_cast<LinkState&>(const_cast<LSUPacket*>(this)->getLinkStates(k));}
     virtual void setLinkStates(size_t k, const LinkState& linkStates);
     virtual void insertLinkStates(size_t k, const LinkState& linkStates);
     [[deprecated]] void insertLinkStates(const LinkState& linkStates) {appendLinkStates(linkStates);}
@@ -189,7 +191,7 @@ inline void doParsimPacking(omnetpp::cCommBuffer *b, const LSUPacket& obj) {obj.
 inline void doParsimUnpacking(omnetpp::cCommBuffer *b, LSUPacket& obj) {obj.parsimUnpack(b);}
 
 /**
- * Struct generated from packet.msg:48 by opp_msgtool.
+ * Struct generated from packet.msg:49 by opp_msgtool.
  */
 struct ScopePeriod
 {
@@ -206,15 +208,15 @@ inline void doParsimPacking(omnetpp::cCommBuffer *b, const ScopePeriod& obj) { _
 inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ScopePeriod& obj) { __doUnpacking(b, obj); }
 
 /**
- * Class generated from <tt>packet.msg:53</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:54</tt> by opp_msgtool.
  * <pre>
- * class ScopesParam extends cObject
+ * class ScopesParam extends cOwnedObject
  * {
  *     ScopePeriod scopes[];
  * }
  * </pre>
  */
-class ScopesParam : public ::omnetpp::cObject
+class ScopesParam : public ::omnetpp::cOwnedObject
 {
   protected:
     ScopePeriod *scopes = nullptr;
@@ -227,7 +229,7 @@ class ScopesParam : public ::omnetpp::cObject
     bool operator==(const ScopesParam&) = delete;
 
   public:
-    ScopesParam();
+    ScopesParam(const char *name=nullptr);
     ScopesParam(const ScopesParam& other);
     virtual ~ScopesParam();
     ScopesParam& operator=(const ScopesParam& other);

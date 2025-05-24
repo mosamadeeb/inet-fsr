@@ -997,11 +997,11 @@ void LinkStateDescriptor::setFieldStructValuePointer(omnetpp::any_ptr object, in
 
 Register_Class(LSUPacket)
 
-LSUPacket::LSUPacket(const char *name, short kind) : ::omnetpp::cPacket(name, kind)
+LSUPacket::LSUPacket() : ::inet::FieldsChunk()
 {
 }
 
-LSUPacket::LSUPacket(const LSUPacket& other) : ::omnetpp::cPacket(other)
+LSUPacket::LSUPacket(const LSUPacket& other) : ::inet::FieldsChunk(other)
 {
     copy(other);
 }
@@ -1014,7 +1014,7 @@ LSUPacket::~LSUPacket()
 LSUPacket& LSUPacket::operator=(const LSUPacket& other)
 {
     if (this == &other) return *this;
-    ::omnetpp::cPacket::operator=(other);
+    ::inet::FieldsChunk::operator=(other);
     copy(other);
     return *this;
 }
@@ -1032,7 +1032,7 @@ void LSUPacket::copy(const LSUPacket& other)
 
 void LSUPacket::parsimPack(omnetpp::cCommBuffer *b) const
 {
-    ::omnetpp::cPacket::parsimPack(b);
+    ::inet::FieldsChunk::parsimPack(b);
     doParsimPacking(b,this->srcAddress);
     b->pack(linkStates_arraysize);
     doParsimArrayPacking(b,this->linkStates,linkStates_arraysize);
@@ -1040,7 +1040,7 @@ void LSUPacket::parsimPack(omnetpp::cCommBuffer *b) const
 
 void LSUPacket::parsimUnpack(omnetpp::cCommBuffer *b)
 {
-    ::omnetpp::cPacket::parsimUnpack(b);
+    ::inet::FieldsChunk::parsimUnpack(b);
     doParsimUnpacking(b,this->srcAddress);
     delete [] this->linkStates;
     b->unpack(linkStates_arraysize);
@@ -1059,6 +1059,7 @@ const ::inet::Ipv4Address& LSUPacket::getSrcAddress() const
 
 void LSUPacket::setSrcAddress(const ::inet::Ipv4Address& srcAddress)
 {
+    handleChange();
     this->srcAddress = srcAddress;
 }
 
@@ -1075,6 +1076,7 @@ const LinkState& LSUPacket::getLinkStates(size_t k) const
 
 void LSUPacket::setLinkStatesArraySize(size_t newSize)
 {
+    handleChange();
     LinkState *linkStates2 = (newSize==0) ? nullptr : new LinkState[newSize];
     size_t minSize = linkStates_arraysize < newSize ? linkStates_arraysize : newSize;
     for (size_t i = 0; i < minSize; i++)
@@ -1087,12 +1089,14 @@ void LSUPacket::setLinkStatesArraySize(size_t newSize)
 void LSUPacket::setLinkStates(size_t k, const LinkState& linkStates)
 {
     if (k >= linkStates_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)linkStates_arraysize, (unsigned long)k);
+    handleChange();
     this->linkStates[k] = linkStates;
 }
 
 void LSUPacket::insertLinkStates(size_t k, const LinkState& linkStates)
 {
     if (k > linkStates_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)linkStates_arraysize, (unsigned long)k);
+    handleChange();
     size_t newSize = linkStates_arraysize + 1;
     LinkState *linkStates2 = new LinkState[newSize];
     size_t i;
@@ -1114,6 +1118,7 @@ void LSUPacket::appendLinkStates(const LinkState& linkStates)
 void LSUPacket::eraseLinkStates(size_t k)
 {
     if (k >= linkStates_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)linkStates_arraysize, (unsigned long)k);
+    handleChange();
     size_t newSize = linkStates_arraysize - 1;
     LinkState *linkStates2 = (newSize == 0) ? nullptr : new LinkState[newSize];
     size_t i;
@@ -1164,7 +1169,7 @@ class LSUPacketDescriptor : public omnetpp::cClassDescriptor
 
 Register_ClassDescriptor(LSUPacketDescriptor)
 
-LSUPacketDescriptor::LSUPacketDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::LSUPacket)), "omnetpp::cPacket")
+LSUPacketDescriptor::LSUPacketDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::LSUPacket)), "inet::FieldsChunk")
 {
     propertyNames = nullptr;
 }
@@ -1767,11 +1772,11 @@ void ScopePeriodDescriptor::setFieldStructValuePointer(omnetpp::any_ptr object, 
 
 Register_Class(ScopesParam)
 
-ScopesParam::ScopesParam() : ::omnetpp::cObject()
+ScopesParam::ScopesParam(const char *name) : ::omnetpp::cOwnedObject(name)
 {
 }
 
-ScopesParam::ScopesParam(const ScopesParam& other) : ::omnetpp::cObject(other)
+ScopesParam::ScopesParam(const ScopesParam& other) : ::omnetpp::cOwnedObject(other)
 {
     copy(other);
 }
@@ -1784,7 +1789,7 @@ ScopesParam::~ScopesParam()
 ScopesParam& ScopesParam::operator=(const ScopesParam& other)
 {
     if (this == &other) return *this;
-    ::omnetpp::cObject::operator=(other);
+    ::omnetpp::cOwnedObject::operator=(other);
     copy(other);
     return *this;
 }
@@ -1801,12 +1806,14 @@ void ScopesParam::copy(const ScopesParam& other)
 
 void ScopesParam::parsimPack(omnetpp::cCommBuffer *b) const
 {
+    ::omnetpp::cOwnedObject::parsimPack(b);
     b->pack(scopes_arraysize);
     doParsimArrayPacking(b,this->scopes,scopes_arraysize);
 }
 
 void ScopesParam::parsimUnpack(omnetpp::cCommBuffer *b)
 {
+    ::omnetpp::cOwnedObject::parsimUnpack(b);
     delete [] this->scopes;
     b->unpack(scopes_arraysize);
     if (scopes_arraysize == 0) {
@@ -1918,7 +1925,7 @@ class ScopesParamDescriptor : public omnetpp::cClassDescriptor
 
 Register_ClassDescriptor(ScopesParamDescriptor)
 
-ScopesParamDescriptor::ScopesParamDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::ScopesParam)), "omnetpp::cObject")
+ScopesParamDescriptor::ScopesParamDescriptor() : omnetpp::cClassDescriptor(omnetpp::opp_typename(typeid(inet::fsrv2::ScopesParam)), "omnetpp::cOwnedObject")
 {
     propertyNames = nullptr;
 }

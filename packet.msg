@@ -1,4 +1,5 @@
 import inet.common.INETDefs;
+import inet.common.packet.chunk.Chunk;
 import inet.networklayer.contract.ipv4.Ipv4Address;
 
 namespace inet::fsrv2;
@@ -39,7 +40,7 @@ class LinkState {
     simtime_t timestamp = 0; // Time at which link state was generated at source node (node that the address belongs to)
 };
 
-packet LSUPacket
+class LSUPacket extends FieldsChunk
 {
     Ipv4Address srcAddress;
     LinkState linkStates[];
@@ -50,6 +51,6 @@ struct ScopePeriod {
     simtime_t period;
 }
 
-class ScopesParam extends cObject {
+class ScopesParam extends cOwnedObject {
     ScopePeriod scopes[];
 }
