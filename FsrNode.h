@@ -16,7 +16,7 @@ namespace inet {
 
 namespace fsrv2 {
 
-const Protocol FSR_PROTOCOL("fsr", "FSR");
+// static const Protocol FSR_PROTOCOL("fsr", "FSR");
 
 struct NeighborInfo {
     LinkInfo link;
@@ -30,6 +30,7 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     ModuleRefByPar<IIpv4RoutingTable> rt;
     ModuleRefByPar<IInterfaceTable> ift;
     Ipv4Address routerId;
+    int outputIfIndex = -1;
     cMessage *startupTimer = nullptr; // timer for delayed startup
     unsigned int maxScope;
 
@@ -64,6 +65,10 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     virtual void handleCrashOperation(LifecycleOperation *operation) override;
 
     void handleInterfaceDown(const NetworkInterface *ie);
+
+    void neighborChecks();
+    std::vector<Ipv4Address> getAddressesOfScope(unsigned int scope);
+    void sendPacket(inet::Ptr<LSUPacket> lsuPacket);
 };
 
 } // namespace fsr

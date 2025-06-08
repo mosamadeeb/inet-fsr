@@ -16,7 +16,7 @@ simple FsrNode like IManetRouting
         string interfaceTableModule;
         string routingTableModule;
 
-        volatile double startupTime @unit(s) = default(0s); // delay before starting the router
+        volatile double startupTime @unit(s) = default(0.010s); // delay before starting the router
         volatile double linkTimeout @unit(s) = default(5s); // delay before removing a neighbor
 
         object scopes = default(inet::fsrv2::ScopesParam {

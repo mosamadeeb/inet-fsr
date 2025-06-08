@@ -28,6 +28,10 @@ FsrNode::FsrNode()
     ls.setTimestamp(simTime());
 
     topologyTable[routerId] = ls;
+
+    distanceTable.clear();
+    distanceTable.push_back(LinkInfo { routerId, 0 });
+    neighborList.clear();
 }
 
 FsrNode::~FsrNode()
@@ -40,12 +44,13 @@ void FsrNode::initialize(int stage)
     RoutingProtocolBase::initialize(stage);
 
     if (stage == INITSTAGE_LOCAL) {
+        EV_INFO << "Initializing FSR node\n";
+
         host = getContainingNode(this);
         ift.reference(this, "interfaceTableModule", true);
         rt.reference(this, "routingTableModule", true);
 
-        // Get router ID from the referenced routing table
-        routerId = rt->getRouterId();
+        // Can't get the interface id here because the table is not yet initialized
 
         startupTimer = new cMessage("FSR-startup");
 
@@ -62,28 +67,50 @@ void FsrNode::initialize(int stage)
         }
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) { // interfaces and static routes are already initialized
-        registerProtocol(FSR_PROTOCOL, gate("ipOut"), gate("ipIn"));
+        EV_INFO << "Initializing FSR protocol\n";
+        registerProtocol(Protocol::fsr, gate("ipOut"), gate("ipIn"));
     }
 }
 
 void FsrNode::handleMessageWhenUp(cMessage *msg)
 {
     if (msg == startupTimer) {
+        EV_DETAIL << "FSR starting up\n";
+
+        // Get router ID from the referenced routing table
+        routerId = rt->getRouterId();
+        EV_INFO << "Initializing FSR node with router ID: " << routerId << "\n";
+
+        if (outputIfIndex == -1) {
+            for (int i = 0; i < ift->getNumInterfaces(); i++) {
+                NetworkInterface *iface = ift->getInterface(i);
+                if (strcmp(iface->getInterfaceName(), "wlan0") == 0) {
+                    outputIfIndex = iface->getInterfaceId();
+                    EV_INFO << "Found wlan0 interface with ID " << outputIfIndex << "\n";
+                    break;
+                }
+            }
+        }
+
         subscribe();
 
         // Schedule first self message
-        for (ScopePeriod scope : scopes) {
+        for (int i = 0; i < scopes.size(); i++) {
+            ScopePeriod *scope = &scopes[i];
             cMessage *scopeMsg = new cMessage("FsrScopeUpdate");
-            scopeMsg->setContextPointer(&scope);
+            scopeMsg->setContextPointer(scope);
 
-            scheduleAfter(scope.period, scopeMsg);
+            scheduleAfter(scope->period, scopeMsg);
         }
     }
     else {
         if (msg->isSelfMessage()) {
             if (strcmp(msg->getName(), "FsrScopeUpdate") != 0) {
+                EV_WARN << "Unexpected FSR self message:" << msg->getName() << "\n";
                 return;
             }
+
+            EV_DETAIL << "FSR scope update\n";
 
             // Handle timer msg, check its scope and send LSU accordingly
             ScopePeriod *periodicScope = reinterpret_cast<ScopePeriod *>(msg->getContextPointer());
@@ -94,6 +121,8 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
             scheduleAfter(periodicScope->period, msg);
         }
         else {
+            EV_DETAIL << "FSR Link State Update\n";
+
             // This is an LSU from another node. Update your topology table.
             Packet *pk = check_and_cast<Packet *>(msg);
             auto protocol = pk->getTag<PacketProtocolTag>()->getProtocol();
@@ -101,8 +130,9 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                 EV_ERROR << "ICMP error received -- discarding\n";
                 delete msg;
             }
-            else if (protocol == &FSR_PROTOCOL) {
-                LSUPacket *lsu = check_and_cast<LSUPacket *>(msg);
+            else if (protocol == &Protocol::fsr) {
+                const auto& lsu = pk->peekAtFront<LSUPacket>();
+                // LSUPacket *lsu = check_and_cast<LSUPacket *>(msg);
 
                 // TODO: Process the LSU and update the topology table, then update routing table if needed
 
@@ -132,14 +162,19 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                     }
                 }
                 
+                EV_DETAIL << "FSR Routing now...\n";
+
                 // TODO: Finally, run the routing algorithm to update the routing and distance tables
                 calcShortestPath();
+            } else {
+                EV_WARN << "Unexpected FSR protocol: " << protocol;
             }
         }
     }
 }
 
-void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
+void FsrNode::neighborChecks() {
+    EV_DEBUG << "Check1\n";
     // First, check if any of our neighbor links are no longer valid
     bool neighborRemoved = false;
     for (auto it = neighborList.begin(); it != neighborList.end(); ) {
@@ -152,6 +187,7 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
             ++it; // C++ shenanigans (we're incrementing the iterator here so we can erase stuff)
         }
     }
+    EV_DEBUG << "Check2\n";
 
     // If any neighbors were removed, we need to update the topology table
     if (neighborRemoved) {
@@ -169,50 +205,111 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
         // If we don't, then the LSU we send will be outdated.
         //calcShortestPath();
     }
+    EV_DEBUG << "Check3\n";
+}
 
+std::vector<Ipv4Address> FsrNode::getAddressesOfScope(unsigned int scope) {
     // Get all nodes in the scope we're targeting
     std::vector<Ipv4Address> addresses;
     for (auto link : distanceTable) {
         // This is "distance in hops", not cost
-        if (link.getCost() == periodicScope->scope
-            || (periodicScope->scope == maxScope && link.getCost() >= maxScope)) {
+        if (link.getCost() == scope
+            || (scope == maxScope && link.getCost() >= maxScope)) {
             addresses.push_back(link.getAddress());
         }
     }
+    EV_DEBUG << "Check4\n";
 
-    if (periodicScope->scope == 1) {
+    if (scope == 1) {
         // If the scope is 1, we should also add our own router ID
         addresses.push_back(routerId);
     }
+    EV_DEBUG << "Check5\n";
 
-    const auto& lsuPacket = makeShared<LSUPacket>();
+    return addresses;
+}
 
-    // Source address is this router
-    lsuPacket->setSrcAddress(routerId);
-
-    // Add link states
-    lsuPacket->setLinkStatesArraySize(addresses.size());
-    for (int i = 0; i < addresses.size(); i++) {
-        lsuPacket->setLinkStates(i, topologyTable[addresses[i]]);
-    }
-
+void FsrNode::sendPacket(inet::Ptr<LSUPacket> lsuPacket) {
     Packet *pk = new Packet();
     pk->insertAtBack(lsuPacket);
+    EV_DEBUG << "Check7\n";
 
-    pk->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&FSR_PROTOCOL);
+    pk->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::fsr);
 
     // TODO: Is this correct?
-    int outputIfIndex = ift->findInterfaceByAddress(routerId)->getInterfaceId();
+    // FIXME: This returns a nullptr
+    // for (int i = 0; i < ift->getNumInterfaces(); i++) {
+    //     NetworkInterface *iface = ift->getInterface(i);
+    //     EV_DETAIL << "Found interface: " << iface->getInterfaceName() << " with ID " << iface->getInterfaceId() << " and path: " << iface->getInterfaceFullPath() << "\n";
+    // }
+
     pk->addTagIfAbsent<InterfaceReq>()->setInterfaceId(outputIfIndex);
 
     // TODO: Should we broadcast?
     pk->addTagIfAbsent<L3AddressReq>()->setDestAddress(Ipv4Address::ALLONES_ADDRESS);
 
     // TODO: TTL (max hop count) set to 1 because we do not want the packet to propagate
-    pk->addTagIfAbsent<HopLimitReq>()->setHopLimit(1);
+    pk->addTagIfAbsent<HopLimitReq>()->setHopLimit(2);
 
     pk->addTagIfAbsent<DispatchProtocolReq>()->setProtocol(&Protocol::ipv4);
     send(pk, "ipOut");
+}
+
+void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
+    neighborChecks();
+
+    auto addresses = getAddressesOfScope(periodicScope->scope);
+
+    const auto& lsuPacket = makeShared<LSUPacket>();
+
+    // Source address is this router
+    lsuPacket->setSrcAddress(routerId);
+    B packetSize = B(sizeof(Ipv4Address));
+
+    // Add link states
+    lsuPacket->setLinkStatesArraySize(addresses.size());
+    for (int i = 0; i < addresses.size(); i++) {
+        lsuPacket->setLinkStates(i, topologyTable[addresses[i]]);
+        packetSize += B(sizeof(Ipv4Address)) + B(sizeof(simtime_t)) + B(topologyTable[addresses[i]].getLinksArraySize() * sizeof(LinkInfo));
+    }
+    EV_DEBUG << "Check6\n";
+
+    // TODO: Size calculation
+    // B maxPacketSize = ((IPv4_MAX_HEADER_LENGTH + OSPFv2_HEADER_LENGTH + OSPFv2_REQUEST_LENGTH) > B(parentInterface->getMtu())) ?
+    //                       IPV4_DATAGRAM_LENGTH :
+    //                       B(parentInterface->getMtu()) - IPv4_MAX_HEADER_LENGTH;
+    // B packetSize = OSPFv2_HEADER_LENGTH;
+
+    // if (linkStateRequestList.empty()) {
+    //     requestPacket->setRequestsArraySize(0);
+    // }
+    // else {
+    //     auto it = linkStateRequestList.begin();
+
+    //     while ((it != linkStateRequestList.end()) && (packetSize <= (maxPacketSize - OSPFv2_REQUEST_LENGTH))) {
+    //         unsigned long requestCount = requestPacket->getRequestsArraySize();
+    //         Ospfv2LsaHeader *requestHeader = (*it);
+    //         Ospfv2LsaRequest request;
+
+    //         request.lsType = requestHeader->getLsType();
+    //         request.linkStateID = requestHeader->getLinkStateID();
+    //         request.advertisingRouter = requestHeader->getAdvertisingRouter();
+
+    //         requestPacket->setRequestsArraySize(requestCount + 1);
+    //         requestPacket->setRequests(requestCount, request);
+
+    //         packetSize += OSPFv2_REQUEST_LENGTH;
+    //         it++;
+    //     }
+    // }
+
+    // requestPacket->setPacketLengthField(B(packetSize).get());
+    // requestPacket->setChunkLength(packetSize);
+
+    lsuPacket->setChunkLength(packetSize);
+
+    sendPacket(lsuPacket);
+    EV_DEBUG << "Check8\n";
 }
 
 void FsrNode::calcShortestPath() {
@@ -266,6 +363,8 @@ void FsrNode::calcShortestPath() {
         distanceTable.push_back(LinkInfo {it.first, it.second});
     }
 
+    EV_DETAIL << "FSR updating routing table...\n";
+
     // Update routing table
     // TODO: Make sure this is correct
     for (auto it : nextHop) {
@@ -278,6 +377,8 @@ void FsrNode::calcShortestPath() {
 
         route->setNextHop(it.second);
     }
+
+    EV_DETAIL << "Done!\n";
 }
 
 void FsrNode::subscribe()
@@ -336,7 +437,7 @@ void FsrNode::handleStartOperation(LifecycleOperation *operation)
 {
     simtime_t startupTime = par("startupTime");
     if (startupTime <= simTime()) {
-        subscribe();
+        scheduleAfter(SimTime(1, SIMTIME_MS), startupTimer);
     }
     else
         scheduleAfter(startupTime, startupTimer);
