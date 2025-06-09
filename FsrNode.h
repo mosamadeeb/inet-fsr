@@ -56,6 +56,7 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     virtual void subscribe();
     virtual void unsubscribe();
 
+    void handleStartUpTimer();
     void handleScopeUpdate(ScopePeriod *periodicScope);
     void calcShortestPath();
 
