@@ -187,9 +187,9 @@ void FsrNode::neighborChecks() {
             i++;
         }
 
-        // TODO: Should we rerun dijkstra and update distance table? the scopes might be different because hops are different now.
+        // We should rerun dijkstra and update the distance table. the scopes might be different because hops are different now.
         // If we don't, then the LSU we send will be outdated.
-        //calcShortestPath();
+        calcShortestPath();
     }
 }
 
