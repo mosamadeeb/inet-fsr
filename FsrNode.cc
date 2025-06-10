@@ -40,7 +40,7 @@ void FsrNode::initialize(int stage)
         ift.reference(this, "interfaceTableModule", true);
         rt.reference(this, "routingTableModule", true);
 
-        // Can't get the interface id here because the table is not yet initialized
+        // Can't get the router and interface ids here because the tables are not yet initialized
 
         startupTimer = new cMessage("FSR-startup");
 
@@ -106,17 +106,13 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                 if (neighborList.find(srcAddr) == neighborList.end()) {
                     // This is a new neighbor
                     NeighborInfo neighborInfo;
-                    neighborInfo.link.setAddress(srcAddr);
+                    neighborInfo.address = srcAddr;
                     neighborInfo.lastLsuTime = simTime();
                     neighborList[srcAddr] = neighborInfo;
 
                     // Add a link to the neighbor in our own link state
-                    LinkInfo linkInfo;
-                    linkInfo.setAddress(srcAddr);
-                    linkInfo.setCost(1); // Cost to neighbor is 1 hop
-
                     topologyTable[routerId].setLinksArraySize(topologyTable[routerId].getLinksArraySize() + 1);
-                    topologyTable[routerId].setLinks(topologyTable[routerId].getLinksArraySize() - 1, linkInfo);
+                    topologyTable[routerId].setLinks(topologyTable[routerId].getLinksArraySize() - 1, srcAddr);
                     topologyTable[routerId].setTimestamp(simTime());
 
                     // Technically we can also add a link to us to the neighbor's LSU, but it should not affect the routing algorithm locally
@@ -183,7 +179,7 @@ void FsrNode::neighborChecks() {
         
         int i = 0;
         for (const auto& neighbor : neighborList) {
-            topologyTable[routerId].setLinks(i, neighbor.second.link);
+            topologyTable[routerId].setLinks(i, neighbor.second.address);
             i++;
         }
 
@@ -199,7 +195,7 @@ std::vector<Ipv4Address> FsrNode::getAddressesOfScope(unsigned int scope) {
     // Get all nodes in the scope we're targeting
     std::vector<Ipv4Address> addresses;
     for (auto link : distanceTable) {
-        EV_DETAIL << "Checking link: " << link.getAddress() << " with cost: " << link.getCost() << "\n";
+        EV_DETAIL << "Checking link: " << link.getAddress() << " with distance: " << link.getCost() << "\n";
 
         // This is "distance in hops", not cost
         if (link.getCost() == scope
@@ -245,7 +241,7 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
 
     // Source address is this router
     lsuPacket->setSrcAddress(routerId);
-    B packetSize = B(sizeof(Ipv4Address));
+    B packetSize = B(sizeof(uint32_t));
 
     // Add link states
     lsuPacket->setLinkStatesArraySize(addresses.size());
@@ -255,12 +251,11 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
         // Print links of link state
         EV_DETAIL << "Link state for address " << addresses[i] << "\n";
         for (int j = 0; j < topologyTable[addresses[i]].getLinksArraySize(); j++) {
-            EV_DETAIL << "  Link " << j << ": " << topologyTable[addresses[i]].getLinks(j).getAddress()
-                      << " with cost: " << topologyTable[addresses[i]].getLinks(j).getCost() << "\n";
+            EV_DETAIL << "  Link " << j << ": " << topologyTable[addresses[i]].getLinks(j) << "\n";
         }
 
         lsuPacket->setLinkStates(i, topologyTable[addresses[i]]);
-        packetSize += B(sizeof(Ipv4Address)) + B(sizeof(simtime_t)) + B(topologyTable[addresses[i]].getLinksArraySize() * sizeof(LinkInfo));
+        packetSize += B(sizeof(uint32_t)) + B(sizeof(int64_t)) + B(topologyTable[addresses[i]].getLinksArraySize() * (sizeof(uint32_t)));
     }
 
     lsuPacket->setChunkLength(packetSize);
@@ -280,7 +275,7 @@ void FsrNode::calcShortestPath() {
         dist[it.first] = ULONG_MAX;
         nextHop[it.first] = Ipv4Address::UNSPECIFIED_ADDRESS;
 
-        EV_DETAIL << "Router: " << it.first << " initialized with distance: " << dist[it.first] << "\n";
+        // EV_DETAIL << "Router: " << it.first << " initialized with distance: " << dist[it.first] << "\n";
     }
 
     // Insert source itself in priority queue and initialize
@@ -300,10 +295,10 @@ void FsrNode::calcShortestPath() {
         for (int i = 0; i < topologyTable[u].getLinksArraySize(); i++){
             // Get vertex label and weight of current
             // adjacent of u.
-            Ipv4Address v = topologyTable[u].getLinks(i).getAddress();
-            int weight = topologyTable[u].getLinks(i).getCost();
+            Ipv4Address v = topologyTable[u].getLinks(i);
+            int weight = 1; // Assuming all links have a cost of 1
 
-            EV_DETAIL << "Checking link from " << u << " to " << v << " with weight: " << weight << "\n";
+            // EV_DETAIL << "Checking link from " << u << " to " << v << " with weight: " << weight << "\n";
 
             // If there is shorter path to v through u.
             if (dist[v] > dist[u] + weight)
@@ -313,33 +308,20 @@ void FsrNode::calcShortestPath() {
                 nextHop[v] = (u == routerId) ? v : nextHop[u];
                 pq.push(LinkInfo {v, dist[v]});
 
-                EV_DETAIL << "Updated distance for " << v << " to " << dist[v] << " via " << nextHop[v] << "\n";
+                // EV_DETAIL << "Updated distance for " << v << " to " << dist[v] << " via " << nextHop[v] << "\n";
             }
         }
     }
 
     // Update router's distance table
-    // FIXME: This is only correct if the cost of all links is exactly 1
-    // That's because "dist" contains costs, but "distanceTable" should contain hop count
     distanceTable.clear();
     for (auto it : dist) {
         distanceTable.push_back(LinkInfo {it.first, it.second});
-        EV_DETAIL << "Distance table updated: " << it.first << " with cost: " << it.second << "\n";
+        EV_DETAIL << "Distance table updated: " << it.first << " with hop count: " << it.second << "\n";
     }
 
     EV_DETAIL << "Current routing table:\n";
     rt->printRoutingTable();
-
-    // for (int32_t i = 0; i < rt->getNumRoutes(); i++) {
-    //     Ipv4Route *route = rt->getRoute(i);
-    //     if (route) {
-    //         EV_DETAIL << "Route " << i << ": "
-    //                   << "Destination: " << route->getDestination()
-    //                   << ", Next Hop: " << route->getNextHopAsGeneric()
-    //                   << ", Interface: " << route->getInterface()->getInterfaceName()
-    //                   << ", Metric: " << route->getMetric() << "\n";
-    //     }
-    // }
 
     // Update routing table
     for (auto it : nextHop) {
@@ -367,16 +349,6 @@ void FsrNode::calcShortestPath() {
     // Print the routing table
     EV_DETAIL << "Updated routing table:\n";
     rt->printRoutingTable();
-    // for (int32_t i = 0; i < rt->getNumRoutes(); i++) {
-    //     Ipv4Route *route = rt->getRoute(i);
-    //     if (route) {
-    //         EV_DETAIL << "Route " << i << ": "
-    //                   << "Destination: " << route->getDestination()
-    //                   << ", Next Hop: " << route->getNextHopAsGeneric()
-    //                   << ", Interface: " << route->getInterface()->getInterfaceName()
-    //                   << ", Metric: " << route->getMetric() << "\n";
-    //     }
-    // }
 }
 
 void FsrNode::handleStartUpTimer()

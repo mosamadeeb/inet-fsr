@@ -267,7 +267,7 @@ bool LinkInfoDescriptor::doesSupport(omnetpp::cObject *obj) const
 const char **LinkInfoDescriptor::getPropertyNames() const
 {
     if (!propertyNames) {
-        static const char *names[] = { "packetData",  nullptr };
+        static const char *names[] = {  nullptr };
         omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
         const char **baseNames = base ? base->getPropertyNames() : nullptr;
         propertyNames = mergeLists(baseNames, names);
@@ -277,7 +277,6 @@ const char **LinkInfoDescriptor::getPropertyNames() const
 
 const char *LinkInfoDescriptor::getProperty(const char *propertyName) const
 {
-    if (!strcmp(propertyName, "packetData")) return "";
     omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
     return base ? base->getProperty(propertyName) : nullptr;
 }
@@ -559,7 +558,7 @@ void LinkState::copy(const LinkState& other)
 {
     this->routerId = other.routerId;
     delete [] this->links;
-    this->links = (other.links_arraysize==0) ? nullptr : new LinkInfo[other.links_arraysize];
+    this->links = (other.links_arraysize==0) ? nullptr : new ::inet::Ipv4Address[other.links_arraysize];
     links_arraysize = other.links_arraysize;
     for (size_t i = 0; i < links_arraysize; i++) {
         this->links[i] = other.links[i];
@@ -583,7 +582,7 @@ void LinkState::parsimUnpack(omnetpp::cCommBuffer *b)
     if (links_arraysize == 0) {
         this->links = nullptr;
     } else {
-        this->links = new LinkInfo[links_arraysize];
+        this->links = new ::inet::Ipv4Address[links_arraysize];
         doParsimArrayUnpacking(b,this->links,links_arraysize);
     }
     doParsimUnpacking(b,this->timestamp);
@@ -604,7 +603,7 @@ size_t LinkState::getLinksArraySize() const
     return links_arraysize;
 }
 
-const LinkInfo& LinkState::getLinks(size_t k) const
+const ::inet::Ipv4Address& LinkState::getLinks(size_t k) const
 {
     if (k >= links_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)links_arraysize, (unsigned long)k);
     return this->links[k];
@@ -612,7 +611,7 @@ const LinkInfo& LinkState::getLinks(size_t k) const
 
 void LinkState::setLinksArraySize(size_t newSize)
 {
-    LinkInfo *links2 = (newSize==0) ? nullptr : new LinkInfo[newSize];
+    ::inet::Ipv4Address *links2 = (newSize==0) ? nullptr : new ::inet::Ipv4Address[newSize];
     size_t minSize = links_arraysize < newSize ? links_arraysize : newSize;
     for (size_t i = 0; i < minSize; i++)
         links2[i] = this->links[i];
@@ -621,17 +620,17 @@ void LinkState::setLinksArraySize(size_t newSize)
     links_arraysize = newSize;
 }
 
-void LinkState::setLinks(size_t k, const LinkInfo& links)
+void LinkState::setLinks(size_t k, const ::inet::Ipv4Address& links)
 {
     if (k >= links_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)links_arraysize, (unsigned long)k);
     this->links[k] = links;
 }
 
-void LinkState::insertLinks(size_t k, const LinkInfo& links)
+void LinkState::insertLinks(size_t k, const ::inet::Ipv4Address& links)
 {
     if (k > links_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)links_arraysize, (unsigned long)k);
     size_t newSize = links_arraysize + 1;
-    LinkInfo *links2 = new LinkInfo[newSize];
+    ::inet::Ipv4Address *links2 = new ::inet::Ipv4Address[newSize];
     size_t i;
     for (i = 0; i < k; i++)
         links2[i] = this->links[i];
@@ -643,7 +642,7 @@ void LinkState::insertLinks(size_t k, const LinkInfo& links)
     links_arraysize = newSize;
 }
 
-void LinkState::appendLinks(const LinkInfo& links)
+void LinkState::appendLinks(const ::inet::Ipv4Address& links)
 {
     insertLinks(links_arraysize, links);
 }
@@ -652,7 +651,7 @@ void LinkState::eraseLinks(size_t k)
 {
     if (k >= links_arraysize) throw omnetpp::cRuntimeError("Array of size %lu indexed by %lu", (unsigned long)links_arraysize, (unsigned long)k);
     size_t newSize = links_arraysize - 1;
-    LinkInfo *links2 = (newSize == 0) ? nullptr : new LinkInfo[newSize];
+    ::inet::Ipv4Address *links2 = (newSize == 0) ? nullptr : new ::inet::Ipv4Address[newSize];
     size_t i;
     for (i = 0; i < k; i++)
         links2[i] = this->links[i];
@@ -761,7 +760,7 @@ unsigned int LinkStateDescriptor::getFieldTypeFlags(int field) const
     }
     static unsigned int fieldTypeFlags[] = {
         0,    // FIELD_routerId
-        FD_ISARRAY | FD_ISCOMPOUND | FD_ISRESIZABLE,    // FIELD_links
+        FD_ISARRAY | FD_ISRESIZABLE,    // FIELD_links
         FD_ISEDITABLE,    // FIELD_timestamp
     };
     return (field >= 0 && field < 3) ? fieldTypeFlags[field] : 0;
@@ -803,7 +802,7 @@ const char *LinkStateDescriptor::getFieldTypeString(int field) const
     }
     static const char *fieldTypeStrings[] = {
         "inet::Ipv4Address",    // FIELD_routerId
-        "inet::fsrv2::LinkInfo",    // FIELD_links
+        "inet::Ipv4Address",    // FIELD_links
         "omnetpp::simtime_t",    // FIELD_timestamp
     };
     return (field >= 0 && field < 3) ? fieldTypeStrings[field] : nullptr;
@@ -892,7 +891,7 @@ std::string LinkStateDescriptor::getFieldValueAsString(omnetpp::any_ptr object, 
     LinkState *pp = omnetpp::fromAnyPtr<LinkState>(object); (void)pp;
     switch (field) {
         case FIELD_routerId: return pp->getRouterId().str();
-        case FIELD_links: return "";
+        case FIELD_links: return pp->getLinks(i).str();
         case FIELD_timestamp: return simtime2string(pp->getTimestamp());
         default: return "";
     }
@@ -958,7 +957,6 @@ const char *LinkStateDescriptor::getFieldStructName(int field) const
         field -= base->getFieldCount();
     }
     switch (field) {
-        case FIELD_links: return omnetpp::opp_typename(typeid(LinkInfo));
         default: return nullptr;
     };
 }

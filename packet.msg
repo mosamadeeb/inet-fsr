@@ -8,8 +8,9 @@ cplusplus {{
 using namespace inet;
 }}
 
+// This LinkInfo class is used in the implementation, but not in the protocol definition.
+// It is not part of the LSU.
 class LinkInfo {
-    @packetData;
     Ipv4Address address;
     unsigned long cost = 1; // This also acts as distance in SPF algorithm
 };
@@ -36,7 +37,7 @@ class LinkState {
     @packetData;
     Ipv4Address routerId;
 
-    LinkInfo links[];
+    Ipv4Address links[]; // Addresses of directly connected neighbors. Cost is 1.
     simtime_t timestamp = 0; // Time at which link state was generated at source node (node that the address belongs to)
 };
 

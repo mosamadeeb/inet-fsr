@@ -16,10 +16,8 @@ namespace inet {
 
 namespace fsrv2 {
 
-// static const Protocol FSR_PROTOCOL("fsr", "FSR");
-
 struct NeighborInfo {
-    LinkInfo link;
+    Ipv4Address address;
     simtime_t lastLsuTime;
 };
 

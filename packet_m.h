@@ -44,11 +44,12 @@ using namespace inet;
 // }}
 
 /**
- * Class generated from <tt>packet.msg:11</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:13</tt> by opp_msgtool.
  * <pre>
+ * // This LinkInfo class is used in the implementation, but not in the protocol definition.
+ * // It is not part of the LSU.
  * class LinkInfo
  * {
- *     \@packetData;
  *     Ipv4Address address;
  *     unsigned long cost = 1; // This also acts as distance in SPF algorithm
  * }
@@ -88,14 +89,14 @@ class LinkInfo
 };
 
 /**
- * Class generated from <tt>packet.msg:35</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:36</tt> by opp_msgtool.
  * <pre>
  * class LinkState
  * {
  *     \@packetData;
  *     Ipv4Address routerId;
  * 
- *     LinkInfo links[];
+ *     Ipv4Address links[]; // Addresses of directly connected neighbors. Cost is 1.
  *     simtime_t timestamp = 0; // Time at which link state was generated at source node (node that the address belongs to)
  * }
  * </pre>
@@ -104,7 +105,7 @@ class LinkState
 {
   protected:
     ::inet::Ipv4Address routerId;
-    LinkInfo *links = nullptr;
+    ::inet::Ipv4Address *links = nullptr;
     size_t links_arraysize = 0;
     ::omnetpp::simtime_t timestamp = 0;
 
@@ -128,12 +129,12 @@ class LinkState
 
     virtual void setLinksArraySize(size_t size);
     virtual size_t getLinksArraySize() const;
-    virtual const LinkInfo& getLinks(size_t k) const;
-    virtual LinkInfo& getLinksForUpdate(size_t k) { return const_cast<LinkInfo&>(const_cast<LinkState*>(this)->getLinks(k));}
-    virtual void setLinks(size_t k, const LinkInfo& links);
-    virtual void insertLinks(size_t k, const LinkInfo& links);
-    [[deprecated]] void insertLinks(const LinkInfo& links) {appendLinks(links);}
-    virtual void appendLinks(const LinkInfo& links);
+    virtual const ::inet::Ipv4Address& getLinks(size_t k) const;
+    virtual ::inet::Ipv4Address& getLinksForUpdate(size_t k) { return const_cast<::inet::Ipv4Address&>(const_cast<LinkState*>(this)->getLinks(k));}
+    virtual void setLinks(size_t k, const ::inet::Ipv4Address& links);
+    virtual void insertLinks(size_t k, const ::inet::Ipv4Address& links);
+    [[deprecated]] void insertLinks(const ::inet::Ipv4Address& links) {appendLinks(links);}
+    virtual void appendLinks(const ::inet::Ipv4Address& links);
     virtual void eraseLinks(size_t k);
 
     virtual ::omnetpp::simtime_t getTimestamp() const;
@@ -141,7 +142,7 @@ class LinkState
 };
 
 /**
- * Class generated from <tt>packet.msg:44</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:45</tt> by opp_msgtool.
  * <pre>
  * class LSUPacket extends FieldsChunk
  * {
@@ -191,7 +192,7 @@ inline void doParsimPacking(omnetpp::cCommBuffer *b, const LSUPacket& obj) {obj.
 inline void doParsimUnpacking(omnetpp::cCommBuffer *b, LSUPacket& obj) {obj.parsimUnpack(b);}
 
 /**
- * Struct generated from packet.msg:49 by opp_msgtool.
+ * Struct generated from packet.msg:50 by opp_msgtool.
  */
 struct ScopePeriod
 {
@@ -208,7 +209,7 @@ inline void doParsimPacking(omnetpp::cCommBuffer *b, const ScopePeriod& obj) { _
 inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ScopePeriod& obj) { __doUnpacking(b, obj); }
 
 /**
- * Class generated from <tt>packet.msg:54</tt> by opp_msgtool.
+ * Class generated from <tt>packet.msg:55</tt> by opp_msgtool.
  * <pre>
  * class ScopesParam extends cOwnedObject
  * {
