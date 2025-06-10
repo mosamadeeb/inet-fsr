@@ -17,13 +17,13 @@ simple FsrNode like IManetRouting
         string routingTableModule;
 
         volatile double startupTime @unit(s) = default(0.010s); // delay before starting the router
-        volatile double linkTimeout @unit(s) = default(5s); // delay before removing a neighbor
+        volatile double linkTimeout @unit(s) = default(2s); // delay before removing a neighbor
 
         object scopes = default(inet::fsrv2::ScopesParam {
             scopes: [
-                { scope: 1, period: 0.5s },
-                { scope: 2, period: 1s },
-                { scope: 3, period: 2s }
+                { scope: 1, period: 500ms },
+                { scope: 2, period: 750ms },
+                { scope: 3, period: 1000ms }
             ]
         });
 
