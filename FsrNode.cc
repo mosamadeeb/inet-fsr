@@ -145,6 +145,8 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                         EV_DETAIL << "Updated link state for node: " << nodeAddr << "\n";
                     }
                 }
+
+                delete msg; // Delete the packet after processing
                 
                 EV_DETAIL << "FSR Routing now...\n";
 
