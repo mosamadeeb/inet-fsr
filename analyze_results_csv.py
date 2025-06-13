@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 # (module =~ "*.hostA.app[0]" AND name =~ "packetSent:vector(packetBytes)") OR (module =~ "*.hostB.app[0]" AND (name =~ "packetReceived:vector(packetBytes)" OR name =~ "endToEndDelay:vector" OR name =~ "throughput:vector")) OR (module =~"*.mac" AND name =~ "sentDownPk:vector(packetBytes)")
 
 extracted_vectors = defaultdict(lambda: defaultdict(list))
-# extracted_vectors['End-to-end throughput'] = {}
-# extracted_vectors['End-to-end delay'] = {}
-# extracted_vectors['Packet delivery ratio'] = {}
-# extracted_vectors['Average number of data bits transmitted/data bit delivered'] = {}
-# extracted_vectors['Average number of control bits transmitted/data bit delivered'] = {}
 
+throughput_str = 'End-to-end throughput'
+delay_str = 'End-to-end delay'
+delivery_ratio_str = 'Packet delivery ratio'
+data_bit_transmitted_str = 'Data bits transmitted per data bit delivered'
+control_bit_transmitted_str = 'Control bits transmitted per data bit delivered'
 
 def calculate_confidence_interval(data, confidence=0.95):
     if len(data) == 0:
@@ -51,6 +51,11 @@ def extract_vectors(file_name, test_name):
     itervar_replication_map = defaultdict(list)
     for run, value in itervar_values:
         val = int(value)
+
+        if itervar_name == 'nodeCount' and val == 6:
+            # Skip this as the results were not satisfactory
+            continue
+
         itervar_replication_map[val].append(run)
 
     for k in itervar_replication_map:
@@ -105,8 +110,11 @@ def extract_vectors(file_name, test_name):
             for (module, name), (vectime, vecvalue) in vector_data[run].items():
                 name = name.split(':')[0]
 
-                # vecvalue is a string with space separated values
-                vecvalue = np.array([float(x) for x in vecvalue.split()])
+                # Edge case with empty list that gets converted to nan
+                if 'split' not in dir(vecvalue):
+                    vecvalue = np.array([])
+                else:
+                    vecvalue = np.array([float(x) for x in vecvalue.split()])
 
                 if name in ['throughput', 'endToEndDelay']:
                     if module != 'FsrTestNet.hostB.app[0]':
@@ -151,11 +159,11 @@ def extract_vectors(file_name, test_name):
         # Print the results
         if len(throughput) != 0:
             print(f"  Throughput: {throughput.mean()/1000:.2f}kbps ± {throughput.std()/1000:.2f}kbps")
-            extracted_vectors['End-to-end throughput'][test_name].append(calculate_confidence_interval(throughput))
+            extracted_vectors[throughput_str][test_name].append(calculate_confidence_interval(throughput))
 
         if len(end_to_end_delay) != 0:
             print(f"  End-to-end delay: {end_to_end_delay.mean()*1000:.2f}ms ± {end_to_end_delay.std()*1000:.2f}ms")
-            extracted_vectors['End-to-end delay'][test_name].append(calculate_confidence_interval(end_to_end_delay))
+            extracted_vectors[delay_str][test_name].append(calculate_confidence_interval(end_to_end_delay))
 
         if len(packet_sent) != 0:
             print(f"  Packets sent: {packet_sent.sum()} (mean: {packet_sent.mean():.2f} ± {packet_sent.std():.2f})")
@@ -167,7 +175,7 @@ def extract_vectors(file_name, test_name):
             # Calculate delivery ratio per run.
             delivery_ratio = packet_received / packet_sent
             print(f"  Delivery ratio: {delivery_ratio.mean():.2f} ± {delivery_ratio.std():.2f}")
-            extracted_vectors['Packet delivery ratio'][test_name].append(calculate_confidence_interval(delivery_ratio))
+            extracted_vectors[delivery_ratio_str][test_name].append(calculate_confidence_interval(delivery_ratio))
 
         # Calculate total data bits delivered
         total_data_bits_delivered = packet_received * msg_len * 8  # Convert bytes to bits
@@ -176,16 +184,24 @@ def extract_vectors(file_name, test_name):
             # Calculate data bit transmitted to data bit delivered ratio
             data_bit_transmitted_ratio = total_data_bits_transmitted / total_data_bits_delivered
             print(f"  Data bits transmitted to data bits delivered ratio: {data_bit_transmitted_ratio.mean():.2f} ± {data_bit_transmitted_ratio.std():.2f}")
-            extracted_vectors['Average number of data bits transmitted/data bit delivered'][test_name].append(calculate_confidence_interval(data_bit_transmitted_ratio))
+            extracted_vectors[data_bit_transmitted_str][test_name].append(calculate_confidence_interval(data_bit_transmitted_ratio))
 
         if len(total_control_bits_transmitted) != 0 and len(packet_received) != 0:
             # Calculate control bit transmitted to data bit delivered ratio
             control_bit_transmitted_ratio = total_control_bits_transmitted / total_data_bits_delivered
             print(f"  Control bits transmitted to data bits delivered ratio: {control_bit_transmitted_ratio.mean():.2f} ± {control_bit_transmitted_ratio.std():.2f}")
-            extracted_vectors['Average number of control bits transmitted/data bit delivered'][test_name].append(calculate_confidence_interval(control_bit_transmitted_ratio))
+            extracted_vectors[control_bit_transmitted_str][test_name].append(calculate_confidence_interval(control_bit_transmitted_ratio))
 
 
 def plot_figures(extracted_vectors, itervar_name, itervar_replication_map, output_dir):
+    itervar_name_map = {
+        'bitrate': 'Bitrate (Mbps)',
+        'messageLength': 'Data size (bytes)',
+        'nodeCount': 'Node count',
+        'sendInterval': 'Packet interval mean (ms)',
+        'speed': 'Mobility speed (mps)',
+    }
+
     for var_name, test_vectors in extracted_vectors.items():
         plt.figure(figsize=(10, 6))
 
@@ -194,7 +210,14 @@ def plot_figures(extracted_vectors, itervar_name, itervar_replication_map, outpu
         for test_name, values in test_vectors.items():
             means = [v[0] for v in values]
             cis = [v[1] for v in values]
-            
+
+            if var_name == throughput_str:
+                means = [x / 1000 for x in means]
+                cis = [x / 1000 for x in cis]
+            elif var_name == delay_str:
+                means = [x * 1000 for x in means]
+                cis = [x * 1000 for x in cis]
+
             # Plotting the mean values as a line
             plt.plot(x_positions, means, marker='o', linestyle='-', label=test_name)
 
@@ -203,14 +226,25 @@ def plot_figures(extracted_vectors, itervar_name, itervar_replication_map, outpu
             lower_bound = [means[i] - cis[i] for i in range(len(means))]
             plt.fill_between(x_positions, lower_bound, upper_bound, alpha=0.2)
 
-        # TODO: Adjust y scale and add units
         plt.xticks(x_positions, sorted(itervar_replication_map.keys()), rotation=45)
         plt.title(var_name)
-        plt.xlabel(itervar_name)
-        plt.ylabel('Value')
+
+        plt.xlabel(itervar_name_map.get(itervar_name, itervar_name))
+
+        if var_name == throughput_str:
+            plt.ylabel('Throughput (Kbps)')
+        elif var_name == delay_str:
+            plt.ylabel('Delay (ms)')
+        else:
+            plt.ylabel('Ratio')
+
         plt.tight_layout()
         plt.grid(axis='y', alpha=0.3)
         plt.legend()
+
+        # Improve y-axis ticks
+        ax = plt.gca()
+        ax.yaxis.set_major_locator(plt.MaxNLocator(8))  # Adjust the maximum number of ticks
 
         # Save the figure
         plt.savefig(f'{output_dir}/{var_name.replace("/", " per ").replace(" ", "_").lower()}.png', dpi=300)
@@ -234,10 +268,11 @@ if __name__ == '__main__':
     # Create the directory for storing figures
     os.makedirs(output_dir, exist_ok=True)
 
-    extract_vectors(file_name, 'FSR(0.5s, 0.75s, 1s)')
-
-    file_name_gsr = f'{file_name[:-4]}-gsr.csv'
-    if os.path.exists(file_name_gsr):
-        extract_vectors(file_name_gsr, 'GSR(0.5s)')
+    file_prefix = file_name[:-4]
+    for file_suffix, test_name in [('-fsr2.csv', 'FSR(0.25s, 0.50s, 0.75s)'), ('.csv', 'FSR(0.50s, 0.75s, 1.00s)'), ('-fsr3.csv', 'FSR(0.75s, 1.50s, 2.25s)'), ('-gsr.csv', 'GSR(0.5s)')]:
+    # for file_suffix, test_name in [('-fsr3.csv', 'FSR(0.75s, 1.50s, 2.25s)')]:
+        file = f'{file_prefix}{file_suffix}'
+        if os.path.exists(file):
+            extract_vectors(file, test_name)
 
     plot_figures(extracted_vectors, g_itervar_name, g_itervar_replication_map, output_dir)
