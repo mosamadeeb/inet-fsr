@@ -56,6 +56,15 @@ void FsrNode::initialize(int stage)
             }
         }
     }
+    else if (stage == INITSTAGE_NETWORK_CONFIGURATION) {
+        // FIXME: Hardcoded interface ID because for some reason a framework update broke the interface IDs
+        outputIfIndex = 101;
+    }
+    else if (stage == INITSTAGE_ROUTER_ID_ASSIGNMENT) {
+        // Get router ID from the referenced routing table
+        routerId = rt->getRouterId();
+        EV_INFO << "Initializing FSR node with router ID: " << routerId << "\n";
+    }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) { // interfaces and static routes are already initialized
         EV_INFO << "Initializing FSR protocol\n";
         registerProtocol(Protocol::fsr, gate("ipOut"), gate("ipIn"));
@@ -67,6 +76,9 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
     if (msg == startupTimer) {
         EV_DETAIL << "FSR starting up\n";
         handleStartUpTimer();
+
+        delete startupTimer;
+        startupTimer = nullptr;
     }
     else {
         if (msg->isSelfMessage()) {
@@ -143,7 +155,7 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                 }
 
                 delete msg; // Delete the packet after processing
-                
+
                 EV_DETAIL << "FSR Routing now...\n";
 
                 // Finally, run the routing algorithm to update the routing and distance tables
@@ -176,7 +188,7 @@ void FsrNode::neighborChecks() {
         // Update timestamp for this router
         topologyTable[routerId].setTimestamp(simTime());
         topologyTable[routerId].setLinksArraySize(neighborList.size());
-        
+
         int i = 0;
         for (const auto& neighbor : neighborList) {
             topologyTable[routerId].setLinks(i, neighbor.second.address);
@@ -284,7 +296,7 @@ void FsrNode::calcShortestPath() {
     dist[routerId] = 0;
 
     // Looping till priority queue becomes empty (or all
-    // distances are not finalized) 
+    // distances are not finalized)
     while (!pq.empty()){
         // The first vertex in pair is the minimum distance
         // vertex, extract it from priority queue.
@@ -353,21 +365,6 @@ void FsrNode::calcShortestPath() {
 
 void FsrNode::handleStartUpTimer()
 {
-    // Get router ID from the referenced routing table
-    routerId = rt->getRouterId();
-    EV_INFO << "Initializing FSR node with router ID: " << routerId << "\n";
-
-    if (outputIfIndex == -1) {
-        for (int i = 0; i < ift->getNumInterfaces(); i++) {
-            NetworkInterface *iface = ift->getInterface(i);
-            if (strcmp(iface->getInterfaceName(), "wlan0") == 0) {
-                outputIfIndex = iface->getInterfaceId();
-                EV_INFO << "Found wlan0 interface with ID " << outputIfIndex << "\n";
-                break;
-            }
-        }
-    }
-
     // Initialize this router's link state in the table
     LinkState ls = LinkState();
     ls.setRouterId(routerId);
