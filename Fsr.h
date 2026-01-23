@@ -1,5 +1,5 @@
-#ifndef __INET_FSRNODE_H
-#define __INET_FSRNODE_H
+#ifndef __INET_FSR_H
+#define __INET_FSR_H
 
 #include <vector>
 #include <map>
@@ -10,18 +10,18 @@
 #include "inet/routing/base/RoutingProtocolBase.h"
 #include "inet/networklayer/contract/ipv4/Ipv4Address.h"
 
-#include "packet_m.h"
+#include "FsrLSU_m.h"
+
+static const inet::Protocol fsrProtocol("fsr", "FSR");
 
 namespace inet {
-
-namespace fsrv2 {
 
 struct NeighborInfo {
     Ipv4Address address;
     simtime_t lastLsuTime;
 };
 
-class INET_API FsrNode : public RoutingProtocolBase, protected cListener
+class INET_API Fsr : public RoutingProtocolBase, protected cListener
 {
   private:
     cModule *host = nullptr; // the host module that owns this module
@@ -31,6 +31,8 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     int outputIfIndex = -1;
     cMessage *startupTimer = nullptr; // timer for delayed startup
     unsigned int maxScope;
+
+    // Protocol fsrProtocol;
 
     // FSR Data Structures
     std::map<Ipv4Address, NeighborInfo> neighborList;
@@ -43,8 +45,8 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     std::vector<ScopePeriod> scopes;
 
   public:
-    FsrNode();
-    virtual ~FsrNode();
+    Fsr();
+    virtual ~Fsr();
 
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
@@ -70,9 +72,6 @@ class INET_API FsrNode : public RoutingProtocolBase, protected cListener
     void sendPacket(inet::Ptr<LSUPacket> lsuPacket);
 };
 
-} // namespace fsr
-
 } // namespace inet
 
 #endif
-

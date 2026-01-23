@@ -12,24 +12,24 @@
 #include "inet/networklayer/common/HopLimitTag_m.h"
 #include "inet/networklayer/common/L3AddressTag_m.h"
 
-#include "FsrNode.h"
+#include "Fsr.h"
 #include <queue>
 
 namespace inet {
-namespace fsrv2 {
 
-Define_Module(FsrNode);
+Define_Module(Fsr);
 
-FsrNode::FsrNode()
+Fsr::Fsr()
+// : fsrProtocol("fsr", "FSR")
 {
 }
 
-FsrNode::~FsrNode()
+Fsr::~Fsr()
 {
     cancelAndDelete(startupTimer);
 }
 
-void FsrNode::initialize(int stage)
+void Fsr::initialize(int stage)
 {
     RoutingProtocolBase::initialize(stage);
 
@@ -47,7 +47,7 @@ void FsrNode::initialize(int stage)
         linkTimeout = par("linkTimeout").doubleValue();
 
         maxScope = 1;
-        ScopesParam *scopesPar = check_and_cast<ScopesParam *>(par("scopes").objectValue());
+        FsrScopesParam *scopesPar = check_and_cast<FsrScopesParam *>(par("scopes").objectValue());
         for (int i = 0; i < scopesPar->getScopesArraySize(); i++) {
             scopes.push_back(scopesPar->getScopes(i));
 
@@ -66,12 +66,17 @@ void FsrNode::initialize(int stage)
         EV_INFO << "Initializing FSR node with router ID: " << routerId << "\n";
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) { // interfaces and static routes are already initialized
-        EV_INFO << "Initializing FSR protocol\n";
-        registerProtocol(Protocol::fsr, gate("ipOut"), gate("ipIn"));
+        EV_INFO << "Registering FSR protocol\n";
+
+        // Add FSR to the IP protocol group, so that IP can accept packets for it
+        ProtocolGroup::getIpProtocolGroup()->addProtocol(fsrProtocol.getId(), &fsrProtocol);
+
+        // Register the protocol so that the message dispatcher can route incoming packets to us
+        registerProtocol(fsrProtocol, gate("ipOut"), gate("ipIn"));
     }
 }
 
-void FsrNode::handleMessageWhenUp(cMessage *msg)
+void Fsr::handleMessageWhenUp(cMessage *msg)
 {
     if (msg == startupTimer) {
         EV_DETAIL << "FSR starting up\n";
@@ -107,7 +112,7 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
                 EV_ERROR << "ICMP error received -- discarding\n";
                 delete msg;
             }
-            else if (protocol == &Protocol::fsr) {
+            else if (protocol == &fsrProtocol) {
                 const auto& lsu = pk->peekAtFront<LSUPacket>();
 
                 // Process the LSU and update the topology table, then update routing table if needed
@@ -167,7 +172,7 @@ void FsrNode::handleMessageWhenUp(cMessage *msg)
     }
 }
 
-void FsrNode::neighborChecks() {
+void Fsr::neighborChecks() {
     // First, check if any of our neighbor links are no longer valid
     bool neighborRemoved = false;
     for (auto it = neighborList.begin(); it != neighborList.end(); ) {
@@ -201,7 +206,7 @@ void FsrNode::neighborChecks() {
     }
 }
 
-std::vector<Ipv4Address> FsrNode::getAddressesOfScope(unsigned int scope) {
+std::vector<Ipv4Address> Fsr::getAddressesOfScope(unsigned int scope) {
     EV_DETAIL << "Getting addresses of scope: " << scope << "\n";
 
     // Get all nodes in the scope we're targeting
@@ -226,11 +231,11 @@ std::vector<Ipv4Address> FsrNode::getAddressesOfScope(unsigned int scope) {
     return addresses;
 }
 
-void FsrNode::sendPacket(inet::Ptr<LSUPacket> lsuPacket) {
+void Fsr::sendPacket(inet::Ptr<LSUPacket> lsuPacket) {
     Packet *pk = new Packet();
     pk->insertAtBack(lsuPacket);
 
-    pk->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::fsr);
+    pk->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&fsrProtocol);
 
     pk->addTagIfAbsent<InterfaceReq>()->setInterfaceId(outputIfIndex);
 
@@ -244,7 +249,7 @@ void FsrNode::sendPacket(inet::Ptr<LSUPacket> lsuPacket) {
     send(pk, "ipOut");
 }
 
-void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
+void Fsr::handleScopeUpdate(ScopePeriod *periodicScope) {
     neighborChecks();
 
     auto addresses = getAddressesOfScope(periodicScope->scope);
@@ -275,7 +280,7 @@ void FsrNode::handleScopeUpdate(ScopePeriod *periodicScope) {
     sendPacket(lsuPacket);
 }
 
-void FsrNode::calcShortestPath() {
+void Fsr::calcShortestPath() {
     std::priority_queue<LinkInfo, std::vector<LinkInfo>, std::greater<LinkInfo>> pq;
 
     EV_DETAIL << "Calculating shortest path for router: " << routerId << "\n";
@@ -363,7 +368,7 @@ void FsrNode::calcShortestPath() {
     rt->printRoutingTable();
 }
 
-void FsrNode::handleStartUpTimer()
+void Fsr::handleStartUpTimer()
 {
     // Initialize this router's link state in the table
     LinkState ls = LinkState();
@@ -385,14 +390,14 @@ void FsrNode::handleStartUpTimer()
     }
 }
 
-void FsrNode::subscribe()
+void Fsr::subscribe()
 {
     host->subscribe(interfaceCreatedSignal, this);
     host->subscribe(interfaceDeletedSignal, this);
     host->subscribe(interfaceStateChangedSignal, this);
 }
 
-void FsrNode::unsubscribe()
+void Fsr::unsubscribe()
 {
     host->unsubscribe(interfaceCreatedSignal, this);
     host->unsubscribe(interfaceDeletedSignal, this);
@@ -402,7 +407,7 @@ void FsrNode::unsubscribe()
 /**
  * Listen on interface changes and update private data structures.
  */
-void FsrNode::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj, cObject *details)
+void Fsr::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj, cObject *details)
 {
     Enter_Method("%s", cComponent::getSignalName(signalID));
 
@@ -437,7 +442,7 @@ void FsrNode::receiveSignal(cComponent *source, simsignal_t signalID, cObject *o
         throw cRuntimeError("Unexpected signal: %s", getSignalName(signalID));
 }
 
-void FsrNode::handleStartOperation(LifecycleOperation *operation)
+void Fsr::handleStartOperation(LifecycleOperation *operation)
 {
     simtime_t startupTime = par("startupTime");
     if (startupTime <= simTime()) {
@@ -447,19 +452,19 @@ void FsrNode::handleStartOperation(LifecycleOperation *operation)
         scheduleAfter(startupTime, startupTimer);
 }
 
-void FsrNode::handleStopOperation(LifecycleOperation *operation)
+void Fsr::handleStopOperation(LifecycleOperation *operation)
 {
     cancelEvent(startupTimer);
     unsubscribe();
 }
 
-void FsrNode::handleCrashOperation(LifecycleOperation *operation)
+void Fsr::handleCrashOperation(LifecycleOperation *operation)
 {
     cancelEvent(startupTimer);
     unsubscribe();
 }
 
-void FsrNode::handleInterfaceDown(const NetworkInterface *ie)
+void Fsr::handleInterfaceDown(const NetworkInterface *ie)
 {
     EV_DETAIL << "DEBUG: interface " << ie->getInterfaceId() << " went down. \n";
 
@@ -476,6 +481,5 @@ void FsrNode::handleInterfaceDown(const NetworkInterface *ie)
     }
 }
 
-} // namespace fsr
 } // namespace inet
 

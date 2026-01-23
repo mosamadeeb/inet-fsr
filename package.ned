@@ -1,4 +1,3 @@
-package inet.routing.fsrv2;
+package inet.routing.fsr;
 
-@namespace(inet::fsrv2);
-
+@namespace(inet);

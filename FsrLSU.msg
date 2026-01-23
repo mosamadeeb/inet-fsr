@@ -2,7 +2,7 @@ import inet.common.INETDefs;
 import inet.common.packet.chunk.Chunk;
 import inet.networklayer.contract.ipv4.Ipv4Address;
 
-namespace inet::fsrv2;
+namespace inet;
 
 cplusplus {{
 using namespace inet;
@@ -52,6 +52,6 @@ struct ScopePeriod {
     simtime_t period;
 }
 
-class ScopesParam extends cOwnedObject {
+class FsrScopesParam extends cOwnedObject {
     ScopePeriod scopes[];
 }
