@@ -11,7 +11,6 @@
 #include "inet/common/packet/dissector/ProtocolDissector.h"
 
 namespace inet {
-namespace fsrv2 {
 
 class INET_API FsrProtocolDissector : public ProtocolDissector
 {
@@ -19,7 +18,6 @@ class INET_API FsrProtocolDissector : public ProtocolDissector
     virtual void dissect(Packet *packet, const Protocol *protocol, ICallback& callback) const override;
 };
 
-} // namespace fsrv2
 } // namespace inet
 
 #endif

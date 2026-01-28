@@ -4,24 +4,24 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 //
 
+#include "Fsr.h"
 #include "FsrProtocolDissector.h"
-#include "packet_m.h"
+#include "FsrLSU_m.h"
 
 #include "inet/common/packet/dissector/ProtocolDissectorRegistry.h"
 
 namespace inet {
-namespace fsrv2 {
 
-Register_Protocol_Dissector(&Protocol::fsr, FsrProtocolDissector);
+Register_Protocol_Dissector(&fsrProtocol, FsrProtocolDissector);
 
 void FsrProtocolDissector::dissect(Packet *packet, const Protocol *protocol, ICallback& callback) const
 {
+    // TODO: This is just a stub
     auto header = packet->popAtFront<LSUPacket>();
-    callback.startProtocolDataUnit(&Protocol::fsr);
-    callback.visitChunk(header, &Protocol::fsr);
-    callback.endProtocolDataUnit(&Protocol::fsr);
+    callback.startProtocolDataUnit(&fsrProtocol);
+    callback.visitChunk(header, &fsrProtocol);
+    callback.endProtocolDataUnit(&fsrProtocol);
 }
 
-} // namespace fsrv2
 } // namespace inet
 

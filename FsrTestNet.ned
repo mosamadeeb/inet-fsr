@@ -1,5 +1,3 @@
-package inet.routing.fsrv2;
-
 import inet.networklayer.configurator.ipv4.Ipv4NetworkConfigurator;
 import inet.node.inet.ManetRouter;
 import inet.physicallayer.wireless.common.contract.packetlevel.IRadioMedium;
